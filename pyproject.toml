@@ -1,5 +1,5 @@
 [project]
-name = "pakedge-api"
+name = "pakedge_api"
 version = "0.1.0"
 description = "Python API client for Pakedge managed switches"
 readme = "README.md"

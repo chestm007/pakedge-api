@@ -24,11 +24,9 @@ def test_smoke() -> None:
     ports = client.get_port_status()
     assert len(ports) > 0, f"Expected ports, got {len(ports)}"
     print(f"✓ Got {len(ports)} port statuses")
-    for port in ports[:4]:  # Show first 4
+    for port in ports:  # Show first 4
         link = "UP" if port.linkstatus else "DOWN"
         print(f"  Port {port.port}: pvid={port.pvid}, link={link}")
-    if len(ports) > 4:
-        print(f"  ... and {len(ports) - 4} more")
 
     # Test 3: Firmware info
     fw = client.get_firmware_info()

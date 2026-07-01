@@ -1,6 +1,6 @@
 """Pakedge API client."""
 
-from pakedge_api.client import (
+from .client import (
     FirmwareInfo,
     PakedgeAuthError,
     PakedgeClient,
@@ -8,7 +8,7 @@ from pakedge_api.client import (
     PakedgeSessionExpired,
     PortStatus,
 )
-from pakedge_api.models import (
+from .models import (
     ACLRule,
     ARPDefense,
     CableDiag,
