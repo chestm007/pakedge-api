@@ -1205,6 +1205,761 @@ class PakedgeClient:
             update_available=bool(data.get("update", False)),
         )
 
+    def get_firmware_check_result(self) -> dict[str, Any]:
+        """Get firmware check result."""
+        return self._get_parsed("cgi/cloudfu_chkresult_pkd")
+
+    def get_firmware_check_update(self) -> dict[str, Any]:
+        """Check for firmware updates."""
+        return self._get_parsed("cgi/cloudfu_chkupdate_pkd")
+
+    def get_firmware_download_bar(self) -> dict[str, Any]:
+        """Get firmware download progress bar."""
+        return self._get_parsed("cgi/cloudfu_downloadBar_pkd")
+
+    def get_firmware_startload(self) -> dict[str, Any]:
+        """Get firmware start load status."""
+        return self._get_parsed("cgi/cloudfu_startload_pkd")
+
+    def upload_firmware(self, file_path: str) -> dict[str, Any]:
+        """Upload firmware file to switch."""
+        with open(file_path, "rb") as f:
+            files = {"file": f}
+            params = {"rand": str(id(self))}
+            try:
+                resp = self._session.post(
+                    f"http://{self.host}/cgi/upload_image_pkd",
+                    files=files,
+                    params=params,
+                    timeout=self.timeout * 5,
+                )
+                resp.raise_for_status()
+                return parse_response(resp.text)
+            except requests.RequestException as exc:
+                raise PakedgeError(f"Firmware upload failed: {exc}") from exc
+
+    def reboot_device(self) -> dict[str, Any]:
+        """Reboot the device."""
+        return self._get_parsed("cgi/sys_reboot_pkd")
+
+    def restore_config(self, file_path: str) -> dict[str, Any]:
+        """Restore configuration from file."""
+        with open(file_path, "rb") as f:
+            files = {"file": f}
+            params = {"rand": str(id(self))}
+            try:
+                resp = self._session.post(
+                    f"http://{self.host}/cgi/restore_pkd",
+                    files=files,
+                    params=params,
+                    timeout=self.timeout * 5,
+                )
+                resp.raise_for_status()
+                return parse_response(resp.text)
+            except requests.RequestException as exc:
+                raise PakedgeError(f"Config restore failed: {exc}") from exc
+
+    def factory_reset(self) -> dict[str, Any]:
+        """Factory reset the device."""
+        return self._get_parsed("cgi/set_system_reset_pkd")
+
+    # ─── Write Endpoints ────────────────────────────────────────────────
+
+    def set_system_info(self, name: str = "", location: str = "", description: str = "",
+                       mgmt_vlan: int = 0, login_timeout: int = 0, dhcp_enabled: bool = False) -> dict[str, Any]:
+        """Set system information."""
+        params = {
+            "system_name": name,
+            "system_location": location,
+            "system_desc": description,
+            "management_vlan": mgmt_vlan,
+            "login_timeout": login_timeout,
+            "dhcp_enabled": 1 if dhcp_enabled else 0,
+        }
+        return self._get_parsed("cgi/set_sysInfo_pkd", params)
+
+    def set_system_time(self, timezone: str = "", sntp_state: int = 0,
+                       primary_server: str = "", secondary_server: str = "", poll_time: int = 0) -> dict[str, Any]:
+        """Set system time configuration."""
+        params = {
+            "time_zone_offset": timezone,
+            "sntp_state": sntp_state,
+            "pri_server_ip": primary_server,
+            "senc_server_ip": secondary_server,
+            "poll_time": poll_time,
+        }
+        return self._get_parsed("cgi/set_sysTime_pkd", params)
+
+    def set_system_user(self, username: str = "", privilege: int = 0) -> dict[str, Any]:
+        """Set system user account."""
+        params = {
+            "username": username,
+            "privilege": privilege,
+        }
+        return self._get_parsed("cgi/set_sysUser_pkd", params)
+
+    def set_system_ssl(self, enabled: bool = False) -> dict[str, Any]:
+        """Set SSL/TLS configuration."""
+        params = {
+            "enabled": 1 if enabled else 0,
+        }
+        return self._get_parsed("cgi/set_sys_ssl_pkd", params)
+
+    def set_port_config(self, port: int = 0, autocfg: int = 0, port_type: int = 0,
+                       pvid: int = 1, jumbo: int = 9216) -> dict[str, Any]:
+        """Set port configuration."""
+        params = {
+            "port": port,
+            "autocfg": autocfg,
+            "port_type": port_type,
+            "pvid": pvid,
+            "jumbo": jumbo,
+        }
+        return self._get_parsed("cgi/set_port_pkd", params)
+
+    def set_port_flow_control(self, port: int = 0, rx_enabled: bool = False, tx_enabled: bool = False) -> dict[str, Any]:
+        """Set port flow control configuration."""
+        params = {
+            "port": port,
+            "rx_enabled": 1 if rx_enabled else 0,
+            "tx_enabled": 1 if tx_enabled else 0,
+        }
+        return self._get_parsed("cgi/set_port_pkd", params)
+
+    def set_port_storm_control(self, port: int = 0, bc_rate: int = 0, mc_rate: int = 0, uc_rate: int = 0) -> dict[str, Any]:
+        """Set broadcast/multicast/unicast storm control."""
+        params = {
+            "port": port,
+            "bc_rate": bc_rate,
+            "mc_rate": mc_rate,
+            "uc_rate": uc_rate,
+        }
+        return self._get_parsed("cgi/set_port_storm_pkd", params)
+
+    def set_port_rate_limit(self, port: int = 0, rx_rate: int = 0, tx_rate: int = 0) -> dict[str, Any]:
+        """Set port rate limiting configuration."""
+        params = {
+            "port": port,
+            "rx_rate": rx_rate,
+            "tx_rate": tx_rate,
+        }
+        return self._get_parsed("cgi/set_port_ratelimit_pkd", params)
+
+    def set_mirror_config(self, mirror_type: int = 0, source_port: str = "", destination_port: str = "") -> dict[str, Any]:
+        """Set port mirroring configuration."""
+        params = {
+            "mirror_type": mirror_type,
+            "source_port": source_port,
+            "destination_port": destination_port,
+        }
+        return self._get_parsed("cgi/set_mirror_pkd", params)
+
+    def set_trunk_aggregation(self, group_id: int = 0, ports: str = "", mode: int = 0) -> dict[str, Any]:
+        """Set static link aggregation configuration."""
+        params = {
+            "group_id": group_id,
+            "ports": ports,
+            "mode": mode,
+        }
+        return self._get_parsed("cgi/set_trunk_aggr_pkd", params)
+
+    def set_trunk_lacp(self, group_id: int = 0, ports: str = "", system_priority: int = 0,
+                      port_priority: int = 0, key: int = 0) -> dict[str, Any]:
+        """Set LACP aggregation configuration."""
+        params = {
+            "group_id": group_id,
+            "ports": ports,
+            "system_priority": system_priority,
+            "port_priority": port_priority,
+            "key": key,
+        }
+        return self._get_parsed("cgi/set_trunk_lacp_pkd", params)
+
+    def set_poe_global(self, power_mgmt_mode: int = 0) -> dict[str, Any]:
+        """Set PoE global configuration."""
+        params = {
+            "power_mgntmode": power_mgmt_mode,
+        }
+        return self._get_parsed("cgi/set_poe_global_pkd", params)
+
+    def set_poe_port(self, port: int = 0, enabled: bool = False, priority: int = 0,
+                    max_power: int = 0, actual_power: int = 0) -> dict[str, Any]:
+        """Set per-port PoE configuration."""
+        params = {
+            "port": port,
+            "enabled": 1 if enabled else 0,
+            "priority": priority,
+            "max_power": max_power,
+            "actual_power": actual_power,
+        }
+        return self._get_parsed("cgi/set_poe_port_pkd", params)
+
+    def set_dot1x_port(self, port: int = 0, enabled: bool = False, mode: str = "") -> dict[str, Any]:
+        """Set 802.1X port configuration."""
+        params = {
+            "port": port,
+            "enabled": 1 if enabled else 0,
+            "mode": mode,
+        }
+        return self._get_parsed("cgi/set_dot1x_port_pkd", params)
+
+    def set_mac_static(self, mac: str = "", port: str = "", vlan: int = 0) -> dict[str, Any]:
+        """Set static MAC address entry."""
+        params = {
+            "mac": mac,
+            "port": port,
+            "vlan": vlan,
+        }
+        return self._get_parsed("cgi/set_mac_staticmac_pkd", params)
+
+    def set_vlan_access_port(self, port: int = 0, pvid: int = 1, member_type: str = "untagged") -> dict[str, Any]:
+        """Set access port VLAN configuration."""
+        params = {
+            "port": port,
+            "pvid": pvid,
+            "member_type": member_type,
+        }
+        return self._get_parsed("cgi/set_vlan_accessport_pkd", params)
+
+    def set_vlan_mac(self, vlan_id: int = 0, mac: str = "", priority: int = 0) -> dict[str, Any]:
+        """Set MAC-based VLAN entry."""
+        params = {
+            "vlan_id": vlan_id,
+            "mac": mac,
+            "priority": priority,
+        }
+        return self._get_parsed("cgi/set_vlan_macvlan_pkd", params)
+
+    def set_vlan_protocol(self, vlan_id: int = 0, protocol: str = "", priority: int = 0) -> dict[str, Any]:
+        """Set protocol-based VLAN entry."""
+        params = {
+            "vlan_id": vlan_id,
+            "protocol": protocol,
+            "priority": priority,
+        }
+        return self._get_parsed("cgi/set_vlan_protovlan_pkd", params)
+
+    def set_oui(self, oui: str = "", vlan_id: int = 0) -> dict[str, Any]:
+        """Set OUI table entry for voice VLAN."""
+        params = {
+            "oui": oui,
+            "vlan_id": vlan_id,
+        }
+        return self._get_parsed("cgi/set_oui_pkd", params)
+
+    def set_voice_port(self, port: int = 0, vlan_id: int = 0, priority: int = 0) -> dict[str, Any]:
+        """Set voice port configuration."""
+        params = {
+            "port": port,
+            "vlan_id": vlan_id,
+            "priority": priority,
+        }
+        return self._get_parsed("cgi/set_voice_port_pkd", params)
+
+    def set_voice_vlan(self, vlan_id: int = 0, enabled: bool = False, priority: int = 0) -> dict[str, Any]:
+        """Set voice VLAN configuration."""
+        params = {
+            "vlan_id": vlan_id,
+            "enabled": 1 if enabled else 0,
+            "priority": priority,
+        }
+        return self._get_parsed("cgi/set_voicevlan_pkd", params)
+
+    def set_qos_schedule(self, scheduling_mode: int = 1, queue_weight_0: int = 1, queue_weight_1: int = 2,
+                        queue_weight_2: int = 4, queue_weight_3: int = 8) -> dict[str, Any]:
+        """Set QoS scheduling configuration."""
+        params = {
+            "scheduling_Mode": scheduling_mode,
+            "Queue_weight0": queue_weight_0,
+            "Queue_weight1": queue_weight_1,
+            "Queue_weight2": queue_weight_2,
+            "Queue_weight3": queue_weight_3,
+        }
+        return self._get_parsed("cgi/set_qos_schedule_pkd", params)
+
+    def set_qos_8021p(self, port: int = 0, priority: int = 0) -> dict[str, Any]:
+        """Set 802.1p priority mapping."""
+        params = {
+            "port": port,
+            "priority": priority,
+        }
+        return self._get_parsed("cgi/set_qos_8021p_pkd", params)
+
+    def set_qos_dscp(self, dscp_value: int = 0, priority: int = 0) -> dict[str, Any]:
+        """Set DSCP mapping."""
+        params = {
+            "dscp_value": dscp_value,
+            "priority": priority,
+        }
+        return self._get_parsed("cgi/set_qos_dscp_pkd", params)
+
+    def set_qos_port_priority(self, port: int = 0, priority: int = 0) -> dict[str, Any]:
+        """Set per-port QoS priority."""
+        params = {
+            "port": port,
+            "priority": priority,
+        }
+        return self._get_parsed("cgi/set_qos_port_pkd", params)
+
+    def set_acl(self, rule_id: int = 0, action: str = "", source_ip: str = "", dest_ip: str = "",
+               source_port: int = 0, dest_port: int = 0, protocol: int = 0) -> dict[str, Any]:
+        """Set ACL rule."""
+        params = {
+            "rule_id": rule_id,
+            "action": action,
+            "source_ip": source_ip,
+            "dest_ip": dest_ip,
+            "source_port": source_port,
+            "dest_port": dest_port,
+            "protocol": protocol,
+        }
+        return self._get_parsed("cgi/set_acl_pkd", params)
+
+    def set_stp_global(self, stp_state: int = 0, stp_version: int = 0, bpdu_process: int = 0,
+                      max_age: int = 20, hello_time: int = 2, forward_delay: int = 15,
+                      max_hops: int = 20, region_root_bridge: str = "", internal_root_path_cost: int = 0) -> dict[str, Any]:
+        """Set STP global configuration."""
+        params = {
+            "stpstate": stp_state,
+            "stpversion": stp_version,
+            "bpduprocess": bpdu_process,
+            "maxage": max_age,
+            "hellotime": hello_time,
+            "forwarddelay": forward_delay,
+            "maxhops": max_hops,
+            "regionrootbridge": region_root_bridge,
+            "internalrootpathcost": internal_root_path_cost,
+        }
+        return self._get_parsed("cgi/set_stp_global_pkd", params)
+
+    def set_stp_instance(self, instance_id: int = 0, vlan_range: str = "", root_priority: int = 0) -> dict[str, Any]:
+        """Set STP MSTP instance."""
+        params = {
+            "instance_id": instance_id,
+            "vlan_range": vlan_range,
+            "root_priority": root_priority,
+        }
+        return self._get_parsed("cgi/set_stp_instance_pkd", params)
+
+    def set_stp_port_config(self, port: int = 0, enabled: bool = False, path_cost: int = 0, priority: int = 0) -> dict[str, Any]:
+        """Set STP per-port configuration."""
+        params = {
+            "port": port,
+            "enabled": 1 if enabled else 0,
+            "path_cost": path_cost,
+            "priority": priority,
+        }
+        return self._get_parsed("cgi/set_stp_portconfig_pkd", params)
+
+    def set_stp_msti_port_config(self, port: int = 0, instance_id: int = 0, path_cost: int = 0, priority: int = 0) -> dict[str, Any]:
+        """Set STP MSTI per-port configuration."""
+        params = {
+            "port": port,
+            "instance_id": instance_id,
+            "path_cost": path_cost,
+            "priority": priority,
+        }
+        return self._get_parsed("cgi/set_stp_mstiportconfig_pkd", params)
+
+    def set_igmp_snooping_global(self, enabled: bool = False, version: int = 2,
+                                query_interval: int = 60, max_response_time: int = 10) -> dict[str, Any]:
+        """Set IGMP snooping global configuration."""
+        params = {
+            "enabled": 1 if enabled else 0,
+            "version": version,
+            "query_interval": query_interval,
+            "max_response_time": max_response_time,
+        }
+        return self._get_parsed("cgi/set_igmp_snooping_global_pkd", params)
+
+    def set_igmp_snooping_vlan(self, vlan_id: int = 0, enabled: bool = False, version: int = 2) -> dict[str, Any]:
+        """Set IGMP snooping per-VLAN configuration."""
+        params = {
+            "vlan_id": vlan_id,
+            "enabled": 1 if enabled else 0,
+            "version": version,
+        }
+        return self._get_parsed("cgi/set_igmp_snooping_vlan_pkd", params)
+
+    def set_igmp_fast_leave(self, port: int = 0, enabled: bool = False) -> dict[str, Any]:
+        """Set IGMP fast-leave configuration."""
+        params = {
+            "port": port,
+            "enabled": 1 if enabled else 0,
+        }
+        return self._get_parsed("cgi/set_igmp_fastleave_pkd", params)
+
+    def set_igmp_multicast_filter(self, port: int = 0, action: str = "", group_addr: str = "") -> dict[str, Any]:
+        """Set IGMP multicast filtering."""
+        params = {
+            "port": port,
+            "action": action,
+            "group_addr": group_addr,
+        }
+        return self._get_parsed("cgi/set_igmp_mul_filting_pkd", params)
+
+    def set_dhcp_relay(self, enabled: bool = False, primary_server: str = "", secondary_server: str = "") -> dict[str, Any]:
+        """Set DHCP relay configuration."""
+        params = {
+            "enabled": 1 if enabled else 0,
+            "primary_server": primary_server,
+            "secondary_server": secondary_server,
+        }
+        return self._get_parsed("cgi/set_dhcpRelay_pkd", params)
+
+    def set_dhcp_service(self, enabled: bool = False, pool_name: str = "", network: str = "",
+                        gateway: str = "", dns: str = "") -> dict[str, Any]:
+        """Set DHCP service configuration."""
+        params = {
+            "enabled": 1 if enabled else 0,
+            "pool_name": pool_name,
+            "network": network,
+            "gateway": gateway,
+            "dns": dns,
+        }
+        return self._get_parsed("cgi/set_dhcpService_pkd", params)
+
+    def set_dhcp_snooping_global(self, enabled: bool = False) -> dict[str, Any]:
+        """Set DHCP snooping global configuration."""
+        params = {
+            "enabled": 1 if enabled else 0,
+        }
+        return self._get_parsed("cgi/set_dhcpsnooping_global_pkd", params)
+
+    def set_dhcp_snooping_port(self, port: int = 0, enabled: bool = False, trust: bool = False) -> dict[str, Any]:
+        """Set DHCP snooping per-port configuration."""
+        params = {
+            "port": port,
+            "enabled": 1 if enabled else 0,
+            "trust": 1 if trust else 0,
+        }
+        return self._get_parsed("cgi/set_dhcpsnooping_port_pkd", params)
+
+    def set_dhcp_snooping_users(self, mac: str = "", ip: str = "", vlan: int = 0, port: str = "") -> dict[str, Any]:
+        """Set DHCP snooping user bindings."""
+        params = {
+            "mac": mac,
+            "ip": ip,
+            "vlan": vlan,
+            "port": port,
+        }
+        return self._get_parsed("cgi/set_dhcpsnooping_users_pkd", params)
+
+    def set_arp_defense(self, port: int = 0, enabled: bool = False, max_arp: int = 0) -> dict[str, Any]:
+        """Set ARP defense configuration."""
+        params = {
+            "port": port,
+            "enabled": 1 if enabled else 0,
+            "max_arp": max_arp,
+        }
+        return self._get_parsed("cgi/set_arpLimit_pkd", params)
+
+    def set_worm_defense(self, enabled: bool = False, threshold: int = 0) -> dict[str, Any]:
+        """Set worm defense configuration."""
+        params = {
+            "enabled": 1 if enabled else 0,
+            "threshold": threshold,
+        }
+        return self._get_parsed("cgi/set_wormLimit_pkd", params)
+
+    def set_dos_defense(self, enabled: bool = False, threshold: int = 0) -> dict[str, Any]:
+        """Set DoS defense configuration."""
+        params = {
+            "enabled": 1 if enabled else 0,
+            "threshold": threshold,
+        }
+        return self._get_parsed("cgi/set_dosLimit_pkd", params)
+
+    def set_mac_defense(self, port: int = 0, enabled: bool = False, max_mac: int = 0) -> dict[str, Any]:
+        """Set MAC defense configuration."""
+        params = {
+            "port": port,
+            "enabled": 1 if enabled else 0,
+            "max_mac": max_mac,
+        }
+        return self._get_parsed("cgi/set_macLimit_pkd", params)
+
+    def set_sec_filter(self, port: int = 0, enabled: bool = False, filter_type: str = "") -> dict[str, Any]:
+        """Set security filter configuration."""
+        params = {
+            "port": port,
+            "enabled": 1 if enabled else 0,
+            "filter_type": filter_type,
+        }
+        return self._get_parsed("cgi/set_sec_filter_pkd", params)
+
+    def set_sec_impb(self, enabled: bool = False) -> dict[str, Any]:
+        """Set import/export bind configuration."""
+        params = {
+            "enabled": 1 if enabled else 0,
+        }
+        return self._get_parsed("cgi/set_sec_impb_pkd", params)
+
+    def set_sec_onekeybind(self, enabled: bool = False) -> dict[str, Any]:
+        """Set one-key bind configuration."""
+        params = {
+            "enabled": 1 if enabled else 0,
+        }
+        return self._get_parsed("cgi/set_sec_onekeybind_pkd", params)
+
+    def set_mac_filter(self, enabled: bool = False, filter_type: str = "") -> dict[str, Any]:
+        """Set MAC filtering configuration."""
+        params = {
+            "enabled": 1 if enabled else 0,
+            "filter_type": filter_type,
+        }
+        return self._get_parsed("cgi/set_mac_filtrate_pkd", params)
+
+    def set_dot1x_global(self, enabled: bool = False, auth_method: str = "") -> dict[str, Any]:
+        """Set 802.1X global configuration."""
+        params = {
+            "enabled": 1 if enabled else 0,
+            "auth_method": auth_method,
+        }
+        return self._get_parsed("cgi/set_dot1x_global_pkd", params)
+
+    def set_dot1x_frame(self, success: int = 0, failed: int = 0, timeout: int = 0) -> dict[str, Any]:
+        """Set 802.1X frame counter."""
+        params = {
+            "success": success,
+            "failed": failed,
+            "timeout": timeout,
+        }
+        return self._get_parsed("cgi/set_dot1x_frame_pkd", params)
+
+    def set_snmp_agentconfig(self, community_name: str = "", view_name: str = "", access_right: int = 0) -> dict[str, Any]:
+        """Set SNMP agent configuration."""
+        params = {
+            "communityName": community_name,
+            "viewName": view_name,
+            "accessRight": access_right,
+        }
+        return self._get_parsed("cgi/set_snmp_agentconfig_pkd", params)
+
+    def set_snmp_groupconfig(self, group_name: str = "", security_model: str = "", security_level: str = "") -> dict[str, Any]:
+        """Set SNMP groups."""
+        params = {
+            "group_name": group_name,
+            "security_model": security_model,
+            "security_level": security_level,
+        }
+        return self._get_parsed("cgi/set_snmp_groupconfig_pkd", params)
+
+    def set_snmp_userconfig(self, username: str = "", group: str = "", auth_protocol: str = "", priv_protocol: str = "") -> dict[str, Any]:
+        """Set SNMP users."""
+        params = {
+            "username": username,
+            "group": group,
+            "auth_protocol": auth_protocol,
+            "priv_protocol": priv_protocol,
+        }
+        return self._get_parsed("cgi/set_snmp_userconfig_pkd", params)
+
+    def set_snmp_viewconfig(self, view_name: str = "", subtree: str = "", included: bool = True) -> dict[str, Any]:
+        """Set SNMP views."""
+        params = {
+            "view_name": view_name,
+            "subtree": subtree,
+            "included": 1 if included else 0,
+        }
+        return self._get_parsed("cgi/set_snmp_viewconfig_pkd", params)
+
+    def set_snmp_trapconfig(self, enabled: bool = False, server: str = "", port: int = 162, community: str = "") -> dict[str, Any]:
+        """Set SNMP trap configuration."""
+        params = {
+            "enabled": 1 if enabled else 0,
+            "server": server,
+            "port": port,
+            "community": community,
+        }
+        return self._get_parsed("cgi/set_snmp_trapconfig_pkd", params)
+
+    def set_lldp_global(self, enabled: bool = False) -> dict[str, Any]:
+        """Set LLDP global configuration."""
+        params = {
+            "enabled": 1 if enabled else 0,
+        }
+        return self._get_parsed("cgi/set_lldp_global_pkd", params)
+
+    def set_lldp_port(self, port: int = 0, enabled: bool = False) -> dict[str, Any]:
+        """Set LLDP per-port configuration."""
+        params = {
+            "port": port,
+            "enabled": 1 if enabled else 0,
+        }
+        return self._get_parsed("cgi/set_lldp_port_pkd", params)
+
+    def set_lldp_statistics(self, port: int = 0, tx_frames: int = 0, rx_frames: int = 0) -> dict[str, Any]:
+        """Set LLDP statistics."""
+        params = {
+            "port": port,
+            "tx_frames": tx_frames,
+            "rx_frames": rx_frames,
+        }
+        return self._get_parsed("cgi/set_lldp_statistic_pkd", params)
+
+    def set_syslog_log(self, enabled: bool = False, level: str = "") -> dict[str, Any]:
+        """Set syslog log configuration."""
+        params = {
+            "enabled": 1 if enabled else 0,
+            "level": level,
+        }
+        return self._get_parsed("cgi/set_syslog_log_pkd", params)
+
+    def set_syslog_server(self, server: str = "", port: int = 514, enabled: bool = False) -> dict[str, Any]:
+        """Set syslog server configuration."""
+        params = {
+            "server": server,
+            "port": port,
+            "enabled": 1 if enabled else 0,
+        }
+        return self._get_parsed("cgi/set_syslog_server_pkd", params)
+
+    def set_ping_diag(self, target: str = "") -> dict[str, Any]:
+        """Set ping diagnostics."""
+        params = {
+            "target": target,
+        }
+        return self._get_parsed("cgi/set_ping_diag_pkd", params)
+
+    def set_tracert_diag(self, target: str = "") -> dict[str, Any]:
+        """Set tracert diagnostics."""
+        params = {
+            "target": target,
+        }
+        return self._get_parsed("cgi/set_tracert_diag_pkd", params)
+
+    def set_vlan_guide(self, vlan_id: int = 0, name: str = "") -> dict[str, Any]:
+        """Set VLAN guide configuration."""
+        params = {
+            "vlan_id": vlan_id,
+            "name": name,
+        }
+        return self._get_parsed("cgi/set_vlan_guide_pkd", params)
+
+    def set_vlan_templates(self, template_name: str = "", vlan_ids: str = "") -> dict[str, Any]:
+        """Set VLAN templates configuration."""
+        params = {
+            "template_name": template_name,
+            "vlan_ids": vlan_ids,
+        }
+        return self._get_parsed("cgi/set_vlan_templates_pkd", params)
+
+    def set_vlan_hybridport(self, port: int = 0, pvid: int = 1, tagged_vlans: str = "", untagged_vlans: str = "") -> dict[str, Any]:
+        """Set hybrid port VLAN configuration."""
+        params = {
+            "port": port,
+            "pvid": pvid,
+            "tagged_vlans": tagged_vlans,
+            "untagged_vlans": untagged_vlans,
+        }
+        return self._get_parsed("cgi/set_vlan_hybridport_pkd", params)
+
+    def set_vlan_trunkport(self, port: int = 0, pvid: int = 1, allowed_vlans: str = "", native_vlan: int = 1) -> dict[str, Any]:
+        """Set trunk port VLAN configuration."""
+        params = {
+            "port": port,
+            "pvid": pvid,
+            "allowed_vlans": allowed_vlans,
+            "native_vlan": native_vlan,
+        }
+        return self._get_parsed("cgi/set_vlan_trunkport_pkd", params)
+
+    def upload_ssl_cert(self, file_path: str) -> dict[str, Any]:
+        """Upload SSL certificate."""
+        with open(file_path, "rb") as f:
+            files = {"file": f}
+            params = {"rand": str(id(self))}
+            try:
+                resp = self._session.post(
+                    f"http://{self.host}/cgi/ssl_uploadcert_pkd",
+                    files=files,
+                    params=params,
+                    timeout=self.timeout * 5,
+                )
+                resp.raise_for_status()
+                return parse_response(resp.text)
+            except requests.RequestException as exc:
+                raise PakedgeError(f"SSL cert upload failed: {exc}") from exc
+
+    def upload_ssl_key(self, file_path: str) -> dict[str, Any]:
+        """Upload SSL key."""
+        with open(file_path, "rb") as f:
+            files = {"file": f}
+            params = {"rand": str(id(self))}
+            try:
+                resp = self._session.post(
+                    f"http://{self.host}/cgi/ssl_uploadkey_pkd",
+                    files=files,
+                    params=params,
+                    timeout=self.timeout * 5,
+                )
+                resp.raise_for_status()
+                return parse_response(resp.text)
+            except requests.RequestException as exc:
+                raise PakedgeError(f"SSL key upload failed: {exc}") from exc
+
+    def set_stp_configid(self, config_id: int = 0, name: str = "") -> dict[str, Any]:
+        """Set STP MSTP config ID."""
+        params = {
+            "config_id": config_id,
+            "name": name,
+        }
+        return self._get_parsed("cgi/set_stp_configid_pkd", params)
+
+    def set_mac_maclist(self, mac: str = "", port: str = "", vlan: int = 0) -> dict[str, Any]:
+        """Set MAC address table entry."""
+        params = {
+            "mac": mac,
+            "port": port,
+            "vlan": vlan,
+        }
+        return self._get_parsed("cgi/set_mac_maclist_pkd", params)
+
+    def set_port_statistics(self, port: int = 0) -> dict[str, Any]:
+        """Set port statistics counters."""
+        params = {
+            "port": port,
+        }
+        return self._get_parsed("cgi/set_port_statistics_pkd", params)
+
+    def set_server(self, server_ip: str = "", server_port: int = 0) -> dict[str, Any]:
+        """Set DHCP relay server configuration."""
+        params = {
+            "server_ip": server_ip,
+            "server_port": server_port,
+        }
+        return self._get_parsed("cgi/set_server_pkd", params)
+
+    def restore_config_file(self, file_path: str) -> dict[str, Any]:
+        """Restore configuration from file."""
+        with open(file_path, "rb") as f:
+            files = {"file": f}
+            params = {"rand": str(id(self))}
+            try:
+                resp = self._session.post(
+                    f"http://{self.host}/cgi/restore",
+                    files=files,
+                    params=params,
+                    timeout=self.timeout * 5,
+                )
+                resp.raise_for_status()
+                return parse_response(resp.text)
+            except requests.RequestException as exc:
+                raise PakedgeError(f"Config restore failed: {exc}") from exc
+
+    def get_snmp_agentconfig(self) -> dict[str, Any]:
+        """Get SNMP agent configuration."""
+        return self._get_parsed("cgi/get_snmp_agentconfig_pkd")
+
+    def get_stp_configid(self) -> dict[str, Any]:
+        """Get STP MSTP config ID."""
+        return self._get_parsed("cgi/get_stp_configid_pkd")
+
+    def get_stp_instDisplay(self) -> dict[str, Any]:
+        """Get STP MSTP instance display."""
+        return self._get_parsed("cgi/get_stp_instDisplay_pkd")
+
     def check_session(self) -> bool:
         """Check if the session is still valid.
 
