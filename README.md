@@ -1,6 +1,7 @@
 # Pakedge API Client
 
 Python API client for Pakedge managed switches (SX-24P16, etc.).
+[note] ONLY TESTED AGAINST SX-24P16 - I'm not responsible if this code bricks your hardware.
 
 ## Install
 
